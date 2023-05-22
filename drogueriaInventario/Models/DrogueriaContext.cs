@@ -15,6 +15,8 @@ public partial class DrogueriaContext : DbContext
     {
     }
 
+    public virtual DbSet<Pedido> Pedidos { get; set; }
+
     public virtual DbSet<Producto> Productos { get; set; }
 
     public virtual DbSet<Venta> Ventas { get; set; }
@@ -23,6 +25,19 @@ public partial class DrogueriaContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Pedido>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Pedidos__3214EC07BD1BEBE4");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Estado).HasMaxLength(50);
+
+            entity.HasOne(d => d.Producto).WithMany(p => p.Pedidos)
+                .HasForeignKey(d => d.ProductoId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__Pedidos__Product__5FB337D6");
+        });
+
         modelBuilder.Entity<Producto>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Producto__3214EC075A086E23");

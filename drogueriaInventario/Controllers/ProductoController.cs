@@ -136,10 +136,88 @@ namespace drogueriaInventario.Controllers
                 FechaVenta = DateTime.Now
             };
 
-            _dbcontext.Ventas.Add(venta);
-            await _dbcontext.SaveChangesAsync();
+            
+
+            try
+            {
+                _dbcontext.Ventas.Add(venta);
+                await _dbcontext.SaveChangesAsync();
+                string mensajeAlerta = "Venta registrada exitosamente";
+
+                if (producto.Cantidad <= producto.MinimoPedido)
+                {
+                    mensajeAlerta = $"{mensajeAlerta} Quedan pocas unidades del producto. ¡Realice un nuevo pedido!";
+                    mensajeAlerta = $"{mensajeAlerta} Cantidad actual: {producto.Cantidad}";
+                    return BadRequest(new { mensaje = mensajeAlerta });
+                }
+
+                return Ok(new { mensaje = mensajeAlerta });
+            }
+            catch (Exception ex)
+            {
+                 return StatusCode(StatusCodes.Status200OK, new { mensaje = ex.Message });
+            }
+
+            
+        }
+
+        [HttpGet]
+        [Route("ProductoMasVendido")]
+        public ActionResult ProductoMasVendido()
+        {
+            var productoMasVendido = _dbcontext.Ventas
+                .GroupBy(v => v.ProductoId)
+                .OrderByDescending(g => g.Sum(v => v.Cantidad))
+                .Select(g => new
+                {
+                    ProductoId = g.Key,
+                    TotalVentas = g.Sum(v => v.Cantidad)
+                })
+                .FirstOrDefault();
+
+            if (productoMasVendido == null)
+            {
+                return NotFound(new { mensaje = "No hay productos vendidos" });
+            }
+
+            Producto producto = _dbcontext.Productos.Find(productoMasVendido.ProductoId);
+
+            return Ok(new { mensaje = "Producto más vendido", producto.Nombre, TotalVentas = productoMasVendido.TotalVentas });
+        }
+
+        [HttpGet]
+        [Route("ProductoMenosVendido")]
+        public ActionResult ProductoMenosVendido()
+        {
+            var productoMenosVendido = _dbcontext.Ventas
+                .GroupBy(v => v.ProductoId)
+                .OrderBy(g => g.Sum(v => v.Cantidad))
+                .Select(g => new
+                {
+                    ProductoId = g.Key,
+                    TotalVentas = g.Sum(v => v.Cantidad)
+                })
+                .FirstOrDefault();
 
             return Ok(new { mensaje = "Venta registrada exitosamente" });
+            {
+                return NotFound(new { mensaje = "No hay productos vendidos" });
+            }
+
+            Producto producto = _dbcontext.Productos.Find(productoMenosVendido.ProductoId);
+
+            return Ok(new { mensaje = "Producto menos vendido", producto.Nombre, TotalVentas = productoMenosVendido.TotalVentas });
         }
+
+        [HttpGet]
+        [Route("TotalDineroVentas")]
+        public ActionResult TotalDineroVentas()
+        {
+            decimal totalDineroVentas = _dbcontext.Ventas.Sum(v => v.Precio);
+
+            return Ok(new { mensaje = "Total de dinero obtenido por ventas", TotalDineroVentas = totalDineroVentas });
+        }
+
+
     }
 }
