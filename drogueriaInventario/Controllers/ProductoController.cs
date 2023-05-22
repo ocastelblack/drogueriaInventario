@@ -161,6 +161,95 @@ namespace drogueriaInventario.Controllers
             
         }
 
+        [HttpPost]
+        [Route("HacerPedido")]
+        public IActionResult HacerPedido(int id, int cantidad)
+        {
+            try
+            {
+                // Validar si el producto existe en la base de datos
+                var producto = _dbcontext.Productos.FirstOrDefault(p => p.Id == id);
+                if (producto == null)
+                {
+                    return NotFound(new { mensaje = "El producto no se encontró" });
+                }
+
+                // Validar si la cantidad solicitada es válida
+                if (cantidad <= 0)
+                {
+                    return BadRequest(new { mensaje = "La cantidad del pedido debe ser mayor a cero" });
+                }
+
+                // Validar si la cantidad solicitada supera el mínimo de pedido
+                if (cantidad < producto.MinimoPedido)
+                {
+                    return BadRequest(new { mensaje = "La cantidad del pedido no cumple con el mínimo requerido" });
+                }
+
+                // Registrar el pedido en la base de datos
+                var pedido = new Pedido
+                {
+                    ProductoId = id,
+                    Cantidad = cantidad,
+                    Estado = "Pendiente"
+                };
+
+                _dbcontext.Pedidos.Add(pedido);
+                _dbcontext.SaveChanges();
+
+                return StatusCode(StatusCodes.Status200OK, new { mensaje = "Pedido realizado exitosamente" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = ex.Message });
+            }
+        }
+
+        [HttpPut]
+        [Route("EditarPedido")]
+        public IActionResult EditarPedido(int id, string estado, int cantidad)
+        {
+            try
+            {
+                // Buscar el pedido en la base de datos
+                var pedido = _dbcontext.Pedidos.FirstOrDefault(p => p.Id == id);
+                if (pedido == null)
+                {
+                    return NotFound(new { mensaje = "El pedido no se encontró" });
+                }
+
+                // Validar si el estado es "ingresado"
+                if (estado == "ingresado")
+                {
+                    // Validar si la cantidad ingresada es válida
+                    if (cantidad <= 0)
+                    {
+                        return BadRequest(new { mensaje = "La cantidad ingresada debe ser mayor a cero" });
+                    }
+
+                    // Obtener el producto relacionado al pedido
+                    var producto = _dbcontext.Productos.FirstOrDefault(p => p.Id == pedido.ProductoId);
+                    if (producto == null)
+                    {
+                        return NotFound(new { mensaje = "El producto relacionado al pedido no se encontró" });
+                    }
+                    // Sumar la cantidad ingresada al producto
+                    producto.Cantidad += cantidad;
+                    _dbcontext.Productos.Update(producto);
+                }
+                // Guardar los cambios en el pedido y en el producto
+                pedido.Estado = estado;
+                _dbcontext.Pedidos.Update(pedido);
+                _dbcontext.SaveChanges();
+
+                return StatusCode(StatusCodes.Status200OK, new { mensaje = "Pedido actualizado exitosamente" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = ex.Message });
+            }
+        }
+
         [HttpGet]
         [Route("ProductoMasVendido")]
         public ActionResult ProductoMasVendido()
