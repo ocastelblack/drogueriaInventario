@@ -307,6 +307,75 @@ namespace drogueriaInventario.Controllers
             return Ok(new { mensaje = "Total de dinero obtenido por ventas", TotalDineroVentas = totalDineroVentas });
         }
 
+        [HttpDelete]
+        [Route("EliminarProducto/{id}")]
+        public IActionResult EliminarProducto(int id)
+        {
+            try
+            {
+                // Buscar el producto en la base de datos
+                var producto = _dbcontext.Productos.FirstOrDefault(p => p.Id == id);
+                if (producto == null)
+                {
+                    return NotFound(new { mensaje = "El producto no se encontró" });
+                }
+
+                // Verificar si hay ventas relacionadas al producto
+                var ventasRelacionadas = _dbcontext.Ventas.Any(v => v.ProductoId == id);
+                // Verificar si hay pedidos relacionados al producto
+                var pedidosRelacionados = _dbcontext.Pedidos.Any(p => p.ProductoId == id);
+
+                // Verificar si el producto "Eliminado" ya existe en la base de datos
+                var productoEliminado = _dbcontext.Productos.FirstOrDefault(p => p.Nombre == "Eliminado" && p.Tipo == "Eliminado");
+                if (productoEliminado == null)
+                {
+                    // Crear un nuevo producto "Eliminado"
+                    productoEliminado = new Producto
+                    {
+                        Nombre = "Eliminado",
+                        Tipo = "Eliminado",
+                        Cantidad = 0,
+                        MinimoPedido = 0,
+                        Precio = 0
+                    };
+
+                    _dbcontext.Productos.Add(productoEliminado);
+                    _dbcontext.SaveChanges();
+                }
+
+                // Actualizar los registros de Ventas y Pedidos con el nuevo producto
+                if (ventasRelacionadas)
+                {
+                    var ventas = _dbcontext.Ventas.Where(v => v.ProductoId == id).ToList();
+                    foreach (var venta in ventas)
+                    {
+                        venta.ProductoId = productoEliminado.Id;
+                    }
+                }
+
+                if (pedidosRelacionados)
+                {
+                    var pedidos = _dbcontext.Pedidos.Where(p => p.ProductoId == id).ToList();
+                    foreach (var pedido in pedidos)
+                    {
+                        pedido.ProductoId = productoEliminado.Id;
+                    }
+                }
+
+                _dbcontext.SaveChanges();
+
+                // Eliminar el producto original
+                _dbcontext.Productos.Remove(producto);
+                _dbcontext.SaveChanges();
+
+                return StatusCode(StatusCodes.Status200OK, new { mensaje = "Producto eliminado exitosamente" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = ex.Message });
+            }
+        }
+
 
     }
 }

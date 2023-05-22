@@ -1,0 +1,25 @@
+Inserccion:
+{
+  "nombre": "Nombre del Producto",
+  "tipo": "Tipo del Producto",
+  "cantidad": 10,
+  "minimoPedido": 5,
+  "precio": 9.99
+}
+
+editar:
+{
+  "id": 1,
+  "nombre": "Nuevo nombre del producto",
+  "tipo": "Nuevo tipo del producto",
+  "minimoPedido": 10,
+  "precio": 14.99
+}
+
+pedido:
+{
+  "productoId": 1,
+  "cantidad": 5,
+  "Estado": ""
+}
+
